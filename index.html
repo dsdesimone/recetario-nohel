@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recetario Nohel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{ color-scheme:light;
+  --bg:#f7f2ea; --paper:#fffdf9; --ink:#2b2119; --muted:#7a6a5c; --line:#e7ddcf;
+  --brand:#6b3f22; --brand-2:#a8673b; --soft:#f1e6d6; --chip:#efe5d6;
+  --warn-bg:#fff4dc; --warn:#8a5a00; --link:#8a4a20;
+  --r:14px; --shadow:0 1px 2px rgba(60,35,15,.06),0 4px 14px rgba(60,35,15,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:650;letter-spacing:-.01em;margin:0}
+
+header{position:sticky;top:0;z-index:5;background:rgba(247,242,234,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.top{display:flex;align-items:center;gap:18px;padding:16px 0 12px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+.brand h1{font-size:24px;color:var(--brand)}
+.brand span{color:var(--muted);font-size:13px}
+.seg{display:inline-flex;background:var(--chip);border-radius:999px;padding:3px}
+.seg button{border:0;background:none;padding:7px 14px;border-radius:999px;font-weight:500;font-size:14px;color:var(--muted)}
+.seg button[aria-pressed=true]{background:var(--paper);color:var(--ink);box-shadow:var(--shadow)}
+.seg small{opacity:.65;margin-left:4px}
+.search{position:relative;flex:1 1 100%;}
+.search input{color:var(--ink);-webkit-text-fill-color:var(--ink);width:100%;border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:12px 40px 12px 42px;font:inherit;font-size:16px;outline:none;transition:border-color .15s,box-shadow .15s}
+.search input:focus{border-color:var(--brand-2);box-shadow:0 0 0 3px rgba(168,103,59,.15)}
+.search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.search .clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);font-size:20px;width:30px;height:30px;border-radius:8px;display:none}
+.search .clear.on{display:block}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 14px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:6px 12px;font-size:13.5px;white-space:nowrap}
+.chip small{color:var(--muted);margin-left:4px}
+.chip[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:#fff}
+.chip[aria-pressed=true] small{color:#f1dcc9}
+
+main{padding:20px 0 60px}
+.status{color:var(--muted);font-size:13.5px;margin:0 0 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.toggle{display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.group{margin:0 0 26px}
+.group h2{font-size:19px;margin:0 0 10px;color:var(--brand);display:flex;align-items:baseline;gap:8px}
+.group h2 small{font:500 12.5px Inter,sans-serif;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.card{text-align:left;border:1px solid var(--line);background:var(--paper);border-radius:var(--r);padding:14px 15px;display:flex;flex-direction:column;gap:6px;transition:transform .12s,box-shadow .12s,border-color .12s;min-height:96px}
+.card:hover{box-shadow:var(--shadow);border-color:#dccbb5;transform:translateY(-1px)}
+.card:focus-visible{outline:2px solid var(--brand-2);outline-offset:2px}
+.card .t{font-weight:600;font-size:15px;line-height:1.3}
+.card .meta{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:12.5px;color:var(--muted);margin-top:auto}
+.card .ing{font-size:12.5px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;border-radius:6px;padding:1px 7px}
+.tag.kind-r{background:#eaf1e6;color:#3f6a35}
+.tag.kind-m{background:#f3e6dc;color:#8a4a20}
+.tag.warn{background:var(--warn-bg);color:var(--warn)}
+.price{font-weight:600;color:var(--ink)}
+mark{background:#ffe2a8;color:inherit;border-radius:3px;padding:0 1px}
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty b{display:block;font-family:Fraunces,serif;font-size:20px;color:var(--ink);margin-bottom:6px}
+
+/* Detalle */
+.scrim{position:fixed;inset:0;background:rgba(40,25,12,.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+.scrim.on{opacity:1;pointer-events:auto}
+.panel{position:fixed;top:0;right:0;bottom:0;width:min(640px,100%);background:var(--paper);z-index:21;transform:translateX(102%);transition:transform .25s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;box-shadow:-10px 0 40px rgba(40,25,12,.15)}
+.panel.on{transform:none}
+.ph{padding:18px 22px 14px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+.ph .crumbs{font-size:12.5px;color:var(--muted);margin-bottom:4px}
+.ph h2{font-size:26px;line-height:1.15}
+.ph .alias{font-size:13px;color:var(--muted);margin-top:4px}
+.icon-btn{border:1px solid var(--line);background:var(--paper);width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex:none;font-size:18px}
+.icon-btn:hover{background:var(--soft)}
+.pb{overflow:auto;padding:18px 22px 40px}
+.facts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.fact{background:var(--soft);border-radius:12px;padding:10px 14px;min-width:120px}
+.fact .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.fact .s{max-width:230px;font-size:12px;color:var(--muted);margin-top:2px}
+.fact.porc{background:#eaf1e6}
+.fact .v{color:var(--brand);font-size:18px;font-weight:600;font-family:Fraunces,serif}
+.scale{display:flex;align-items:center;gap:6px;margin-top:2px}
+.scale button{width:28px;height:28px;border:1px solid var(--line);background:var(--paper);border-radius:8px;font-size:16px;line-height:1}
+.scale input{width:76px;border:2px solid var(--brand);border-radius:8px;padding:4px 6px;font:700 18px Inter,system-ui,sans-serif;text-align:center;background:#fff;color:var(--brand);-webkit-text-fill-color:var(--brand);opacity:1}
+.scale input:focus{outline:none;box-shadow:0 0 0 3px rgba(107,63,34,.2)}
+.scale .u{font-size:13px;color:var(--muted)}
+.scale .reset{border:0;background:none;color:var(--link);font-size:12.5px;width:auto;padding:0 4px;text-decoration:underline}
+.sec{margin:0 0 22px}
+.sec h3{font-size:16px;margin:0 0 8px}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+td{padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.q{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:600;width:1%;padding-right:4px}
+td.u{white-space:nowrap;color:var(--muted);width:1%;padding-left:2px}
+td .note{display:block;font-size:12.5px;color:var(--muted)}
+.lnk{border:0;background:none;padding:0;color:var(--link);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;text-align:left}
+.lnk:hover{color:var(--brand)}
+.type{font-size:11px;font-weight:600;border-radius:5px;padding:0 6px;margin-left:6px;vertical-align:1px}
+.type.Receta{background:#eaf1e6;color:#3f6a35}
+.type.Producto{background:#f3e6dc;color:#8a4a20}
+.notes p{margin:0 0 8px;white-space:pre-wrap}
+.pend{background:var(--warn-bg);border-left:3px solid #e0a63a;border-radius:8px;padding:10px 12px;font-size:14px;color:#5e4100}
+.pend + .pend{margin-top:8px}
+.uses{display:flex;flex-wrap:wrap;gap:6px}
+.uses .lnk{background:var(--soft);text-decoration:none;color:var(--ink);padding:5px 10px;border-radius:8px;font-size:13.5px}
+.uses .lnk:hover{background:#ead9c3}
+
+@media (min-width:760px){
+  .search{flex:1 1 320px;order:0}
+  .top{flex-wrap:nowrap}
+}
+@media (max-width:520px){
+  .wrap{padding:0 14px}
+  .brand h1{font-size:21px}
+  .brand span{display:none}
+  .ph h2{font-size:22px}
+  .pb,.ph{padding-left:16px;padding-right:16px}
+}
+
+/* ---- app con datos ---- */
+.btn{border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:8px 14px;font-weight:500;font-size:14px;white-space:nowrap}
+.btn:hover{background:var(--soft)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:#5a341b}
+.btn.danger{color:#a3271b;border-color:#e9c2bd}
+.btn.danger:hover{background:#fbecea}
+.btn:disabled{opacity:.5;cursor:default}
+.role{font-size:12px;color:var(--muted);background:var(--chip);border-radius:999px;padding:4px 10px;white-space:nowrap}
+.banner{margin:16px 0 0;padding:12px 14px;border-radius:12px;background:var(--warn-bg);color:#5e4100;font-size:14px}
+.tag.note{background:#e8eef7;color:#2e4d7a}
+.ph .actions{display:flex;gap:8px;align-items:center}
+
+/* aclaraciones */
+.notes-list{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.nt{background:#f4f7fb;border:1px solid #dfe7f2;border-radius:12px;padding:10px 12px}
+.nt .h{display:flex;gap:8px;align-items:baseline;font-size:12.5px;color:var(--muted);margin-bottom:3px}
+.nt .h b{color:var(--ink);font-weight:600}
+.nt .h .x{margin-left:auto;border:0;background:none;color:var(--muted);font-size:12.5px;text-decoration:underline;padding:0}
+.nt p{margin:0;white-space:pre-wrap;font-size:14.5px}
+.compose textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;resize:vertical;background:#fff;color:var(--ink)}
+.compose .row{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:10px}
+.muted{color:var(--muted);font-size:13.5px}
+.err{color:#a3271b;font-size:13.5px}
+
+/* formulario */
+.form{display:flex;flex-direction:column;gap:14px}
+.form label.f{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.form input,.form select,.form textarea{font:inherit;font-size:15px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
+.form input:focus,.form select:focus,.form textarea:focus{outline:none;border-color:var(--brand-2);box-shadow:0 0 0 3px rgba(168,103,59,.15)}
+.form textarea{min-height:80px;resize:vertical}
+.form .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.form .hint{font-size:12px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}
+.comps{display:flex;flex-direction:column;gap:8px}
+.crow{display:grid;grid-template-columns:2fr 1.35fr .75fr .95fr auto;gap:6px;align-items:start;background:var(--soft);padding:8px;border-radius:10px}
+.crow .nota{grid-column:1 / 5}
+.crow .rm{border:0;background:none;font-size:20px;color:var(--muted);width:30px;height:36px}
+.crow .rm:hover{color:#a3271b}
+.form .bar{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;position:sticky;bottom:-40px;background:var(--paper);padding:12px 0;border-top:1px solid var(--line)}
+.confirm{background:#fbecea;border:1px solid #efc9c3;border-radius:12px;padding:12px;font-size:14px}
+.confirm .row{display:flex;gap:8px;margin-top:10px}
+@media (max-width:520px){
+  .crow{grid-template-columns:1fr 1fr auto}
+  .crow .n{grid-column:1 / 3}
+  .crow .nota{grid-column:1 / -1}
+  .form .three{grid-template-columns:1fr 1fr}
+}
+.gate{min-height:70vh;display:grid;place-items:center;padding:40px 20px}
+.gate-card{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:32px 28px;max-width:420px;width:100%;text-align:center;box-shadow:var(--shadow)}
+.gate-card p{margin:0 0 14px}
+.gate-logo{font-family:Fraunces,Georgia,serif;font-size:30px;font-weight:650;color:var(--brand)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand"><h1>Recetario Nohel</h1><span>Coffee House</span></div>
+      <div class="seg" role="group" aria-label="Sección">
+        <button data-s="recetas" aria-pressed="true">Recetas<small></small></button>
+        <button data-s="menu" aria-pressed="false">Menú<small></small></button>
+        <button data-s="todo" aria-pressed="false">Todo<small></small></button>
+      </div>
+      <label class="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Buscar receta, producto o ingrediente…" autocomplete="off" aria-label="Buscar">
+        <button class="clear" id="clr" aria-label="Borrar búsqueda">×</button>
+      </label>
+      <button class="btn primary" id="newBtn" hidden>+ Nueva</button>
+      <button class="btn" id="teamBtn" hidden>Equipo</button>
+      <button class="btn" id="outBtn" hidden title="Cerrar sesión">Salir</button>
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Categorías"></div>
+  </div>
+</header>
+
+<div id="gate" class="gate" hidden></div>
+<main class="wrap" id="mainArea">
+  <div id="banner"></div>
+  <div class="status" style="margin-top:16px"><span id="count"></span>
+    <label class="toggle"><input type="checkbox" id="onlyPend"> Solo con datos pendientes</label>
+    <label class="toggle"><input type="checkbox" id="onlyNotes"> Solo con aclaraciones</label>
+    <span class="role" id="role" hidden></span>
+  </div>
+  <div id="list"><div class="empty"><b>Cargando recetas…</b></div></div>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="panel" id="panel" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+  <div class="ph">
+    <button class="icon-btn" id="back" aria-label="Volver" title="Volver" style="display:none">←</button>
+    <div style="flex:1;min-width:0">
+      <div class="crumbs" id="dCrumbs"></div>
+      <h2 id="dTitle"></h2>
+      <div class="alias" id="dAlias"></div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="editBtn" hidden>Editar</button>
+      <button class="icon-btn" id="close" aria-label="Cerrar" title="Cerrar">×</button>
+    </div>
+  </div>
+  <div class="pb" id="dBody"></div>
+</aside>
+
+<datalist id="dlComp"></datalist>
+<datalist id="dlCat"></datalist>
+
+<script type="module">
+/* =========================================================
+   Recetario Nohel — versión web (Firebase)
+   items/{id}     : recetas y productos (solo la dueña escribe)
+   notas/{id}     : aclaraciones (cada miembro crea las suyas)
+   permisos/{mail}: mails del equipo con acceso de lectura + aclaraciones
+   ========================================================= */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, onSnapshot, query, orderBy, setDoc, deleteDoc, addDoc, getDoc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// ============================================================
+//  CONFIGURACIÓN — Recetario Nohel
+//  1) Pegá abajo los datos de tu proyecto de Firebase
+//     (Consola de Firebase → ⚙ Configuración del proyecto → Tus apps → Web → firebaseConfig)
+//  2) OWNER_EMAIL es la cuenta que puede cargar, editar y borrar recetas
+//     y manejar el equipo. Tiene que coincidir con la de firestore.rules.
+// ============================================================
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDxRf-3YACZ3AEmEGGIcpbILORXkYuPKbk",
+  authDomain: "recetario-nohel.firebaseapp.com",
+  projectId: "recetario-nohel",
+  storageBucket: "recetario-nohel.firebasestorage.app",
+  messagingSenderId: "447756050649",
+  appId: "1:447756050649:web:1813b88645eb24463d5ec8"
+};
+
+const OWNER_EMAIL = "dsdesimone8@gmail.com";
+const fbApp = initializeApp(FIREBASE_CONFIG);
+const auth = getAuth(fbApp);
+const fs = getFirestore(fbApp);
+const OWNER = OWNER_EMAIL.toLowerCase();
+const $ = id => document.getElementById(id);
+const esc = s => String(s??"").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+const norm = s => (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const fmt = n => n.toLocaleString("es-AR",{maximumFractionDigits: n<10 ? 2 : (n<100 ? 1 : 0)});
+const parseNum = s => { if(typeof s==="number") return s; const t=String(s??"").trim(); if(!t) return null;
+  const n = /,/.test(t) ? parseFloat(t.replace(/\./g,"").replace(",",".")) : (/^\d{1,3}(\.\d{3})+$/.test(t) ? parseFloat(t.replace(/\./g,"")) : parseFloat(t));
+  return isNaN(n)?null:n; };
+const slug = s => norm(s).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60) || "item";
+const UNIT_G = {"huevos":50,"limon":100,"lima":70,"banana":120,"pan de molde blanco feteado (rebanada)":25,"edulcorante (sobres)":1,"cerveza imperial stout":473};
+const UNIT_TXT = {"huevos":"huevo 50 g","limon":"limón 100 g","lima":"lima 70 g","banana":"banana 120 g","pan de molde blanco feteado (rebanada)":"rebanada 25 g","edulcorante (sobres)":"sobre 1 g","cerveza imperial stout":"lata 473 ml"};
+
+/* ---------- estado ---------- */
+let ITEMS = [], byId = {}, recipeByName = {}, menuByName = {}, usedIn = {}, catOrder = {recetas:[],menu:[]};
+let NOTES = []; // [{id, item, text, at, uid, nombre}]
+let notesByItem = {};
+let db = true, user = null, me = {uid:null, email:"", isOwner:false, canEdit:false, canWrite:true};
+let names = {};
+const st = {s:"recetas", c:null, q:"", pend:false, notes:false};
+let loaded = false;
+
+/* ---------- cálculos: porciones y peso ---------- */
+function derive(){
+  byId = {}; recipeByName = {}; menuByName = {}; usedIn = {};
+  catOrder = {recetas:[],menu:[]};
+  ITEMS.forEach(x=>{ byId[x.id]=x; (x.s==="recetas"?recipeByName:menuByName)[norm(x.name)] = x;
+    if(!catOrder[x.s].includes(x.c)) catOrder[x.s].push(x.c); });
+  ITEMS.forEach(x=>(x.comp||[]).forEach(c=>{
+    const t = target(c); if(t && t!==x){ (usedIn[t.id] ||= []); if(!usedIn[t.id].includes(x)) usedIn[t.id].push(x); }
+  }));
+  // uso en el menú (g) para estimar la porción de salsas y rellenos
+  const useG = {};
+  ITEMS.filter(x=>x.s==="menu").forEach(m=>(m.comp||[]).forEach(c=>{ if(c.t==="Receta"&&c.u==="g") (useG[norm(c.n)] ||= []).push(c.q); }));
+  ITEMS.forEach(x=>{ x.porc = x.s==="recetas" ? porcInfo(x, useG[norm(x.name)]) : null; });
+  const memo = {};
+  const weight = r => {
+    if(r.id in memo) return memo[r.id]; memo[r.id] = null;
+    const p = r.porc || {}; let w = null;
+    const notes = r.notes||"";
+    if(r.porcionG && r.rindeU!=="g") w = {w:r.porcionG, src:"manual", as:[]};
+    else if(p.size) w = {w:p.size, src:p.src, as:[]};
+    else {
+      const m = notes.match(/porci[oó]n(?:es)? de (\d+)\s*g/i)||notes.match(/bollos de (\d+)\s*g/i)||notes.match(/unidades de (\d+)\s*g/i)||notes.match(/barra(?: mixta)? de (\d+)\s*g/i);
+      if(m) w = {w:+m[1], src:"nota", as:[]};
+      else if(p.n){
+        let t=0, as=new Set(), ok=true;
+        for(const c of r.comp||[]){
+          const k=norm(c.n), q=c.q;
+          if(q==null){ ok=false; break; }
+          if(c.u==="g"||c.u==="ml") t+=q;
+          else if(c.t==="Receta" && recipeByName[k]){ const sw=weight(recipeByName[k]); if(!sw){ok=false;break;} t += (c.u==="porciones"||c.u==="u") ? q*sw.w : q; }
+          else if(c.u==="u" && UNIT_G[k]){ t+=q*UNIT_G[k]; as.add(k); }
+          else { ok=false; break; }
+        }
+        if(ok && t>0) w = {w:t/p.n, src:"estimado", as:[...as]};
+      }
+    }
+    memo[r.id] = w; return w;
+  };
+  ITEMS.forEach(x=>{ if(x.porc){ const w = weight(x); if(w){ x.porc.w=Math.round(w.w); x.porc.wsrc=w.src; x.porc.as=w.as; } } });
+  // notas por ítem
+  notesByItem = {};
+  NOTES.forEach(n=>{ if(byId[n.item]) (notesByItem[n.item] ||= []).push(n); });
+  Object.values(notesByItem).forEach(a=>a.sort((a,b)=>a.at<b.at?-1:1));
+  ITEMS.forEach(x=>{ x.hay = norm([x.name,x.c,x.alias,...(x.comp||[]).map(c=>c.n+" "+(c.nota||"")),x.notes,x.pend,...(notesByItem[x.id]||[]).map(n=>n.text)].join(" | ")); });
+  // listas para el formulario
+  const compNames = new Set(); ITEMS.forEach(x=>{ compNames.add(x.name); (x.comp||[]).forEach(c=>compNames.add(c.n)); });
+  $("dlComp").innerHTML = [...compNames].sort((a,b)=>a.localeCompare(b,"es")).map(n=>`<option value="${esc(n)}">`).join("");
+}
+function target(c){ return c.t==="Receta" ? recipeByName[norm(c.n)] : c.t==="Producto" ? menuByName[norm(c.n)] : null; }
+function porcInfo(r, useG){
+  const q=r.rindeQ, u=r.rindeU, notes=r.notes||"";
+  if(!q) return null;
+  if(u==="porciones") return {n:q, src:"receta"};
+  if(u==="u") return {n:q, src:"unidades"};
+  if(r.porcionG) return {n:q/r.porcionG, size:r.porcionG, src:"manual"};
+  const m = notes.match(/(\d+)\s*porci[oó]n(?:es)?\b/i);
+  const s = notes.match(/porci[oó]n(?:es)? de (\d+)\s*g/i) || notes.match(/(\d+)\s*g por (?:porci|cookie|unidad)/i);
+  if(m){ const n=+m[1]; return {n, size: s?+s[1]:Math.round(q/n), src:"nota"}; }
+  if(s) return {n:q/+s[1], size:+s[1], src:"nota"};
+  if(useG && useG.length){ const cnt={}; useG.forEach(g=>cnt[g]=(cnt[g]||0)+1); const size=+Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0][0]; return {n:q/size, size, src:"menu"}; }
+  return {n:null, src:"sin"};
+}
+function porc(it, sc=1){
+  const p = it.porc; if(!p) return null;
+  if(p.n==null) return {main:"Sin definir", sub:"Falta el tamaño de la porción", short:null, w:null};
+  const n = p.n*sc, exact = Math.abs(n-Math.round(n))<0.05;
+  const val = exact ? fmt(Math.round(n)) : "≈ "+fmt(Math.floor(n));
+  const one = exact ? Math.round(n)===1 : Math.floor(n)===1;
+  const word = one ? "porción" : "porciones";
+  const sub = p.src==="unidades" ? "1 porción = 1 unidad" : "";
+  let w=null, wsub="";
+  if(p.w){
+    w = (p.wsrc==="estimado"?"≈ ":"")+fmt(p.w)+" g";
+    wsub = p.wsrc==="nota" ? "según la receta" : p.wsrc==="manual" ? "dato cargado" : p.wsrc==="menu" ? "según lo que usa el menú" :
+      "estimado: suma de ingredientes en crudo, antes de cocinar" + (p.as&&p.as.length ? ` (tomando ${p.as.map(a=>UNIT_TXT[a]||a).join(", ")})` : "");
+  }
+  return {main:`${val} ${word}`, sub, short:`${val} ${word}`+(w?` · ${w} c/u`:""), w, wsub};
+}
+const rindeTxt = it => it.rindeQ ? `${fmt(it.rindeQ)} ${it.rindeU==="u"?"u":it.rindeU}` : "";
+
+/* ---------- lista ---------- */
+function hl(text){
+  const t = esc(text); if(!st.q) return t;
+  const words = norm(st.q).split(/\s+/).filter(Boolean); if(!words.length) return t;
+  const raw = String(text), n = [...raw].map(ch=>norm(ch)||ch).join("");
+  if(n.length!==raw.length) return t;
+  const marks = new Array(raw.length).fill(false);
+  words.forEach(w=>{ let i=0; while((i=n.indexOf(w,i))>-1){ for(let k=i;k<i+w.length;k++)marks[k]=true; i+=w.length; } });
+  let out="",open=false;
+  for(let i=0;i<raw.length;i++){ if(marks[i]&&!open){out+="<mark>";open=true} if(!marks[i]&&open){out+="</mark>";open=false} out+=esc(raw[i]); }
+  return out+(open?"</mark>":"");
+}
+function matches(it){
+  if(st.s!=="todo" && it.s!==st.s) return false;
+  if(st.c && it.c!==st.c) return false;
+  if(st.pend && !(it.pend||"").trim()) return false;
+  if(st.notes && !(notesByItem[it.id]||[]).length) return false;
+  if(st.q){ const words = norm(st.q).split(/\s+/).filter(Boolean); if(!words.every(w=>it.hay.includes(w))) return false; }
+  return true;
+}
+function renderTabs(){
+  const n = s => ITEMS.filter(x=>s==="todo"||x.s===s).length;
+  document.querySelectorAll(".seg button").forEach(b=>{ b.setAttribute("aria-pressed", b.dataset.s===st.s); b.querySelector("small").textContent = n(b.dataset.s); });
+}
+function renderChips(){
+  const pool = ITEMS.filter(x=>st.s==="todo"||x.s===st.s);
+  const cats = st.s==="todo" ? [...new Set([...catOrder.recetas,...catOrder.menu])] : catOrder[st.s];
+  if(st.c && !cats.includes(st.c)) st.c=null;
+  const cnt = c => pool.filter(x=>x.c===c).length;
+  $("chips").innerHTML = `<button class="chip" data-c="" aria-pressed="${!st.c}">Todas<small>${pool.length}</small></button>` +
+    cats.map(c=>`<button class="chip" data-c="${esc(c)}" aria-pressed="${st.c===c}">${esc(c)}<small>${cnt(c)}</small></button>`).join("");
+}
+function cardHTML(it){
+  const isR = it.s==="recetas";
+  let ingr = (it.comp||[]).map(c=>c.n);
+  if(st.q){ const w=norm(st.q).split(/\s+/).filter(Boolean); const hit=c=>w.some(x=>norm(c).includes(x)); ingr=[...ingr.filter(hit),...ingr.filter(c=>!hit(c))]; }
+  const ingTxt = ingr.slice(0,6).join(" · ") + (ingr.length>6?` · +${ingr.length-6}`:"");
+  const bits = [];
+  if(st.s==="todo") bits.push(`<span class="tag ${isR?"kind-r":"kind-m"}">${isR?"Receta":"Menú"}</span>`);
+  if(isR){ const pp = porc(it);
+    if(pp && pp.short) bits.push(`<span class="price">${esc(pp.short)}</span>`);
+    else if(it.rindeQ) bits.push(`<span>Rinde ${esc(rindeTxt(it))} · <span class="tag warn">porción sin definir</span></span>`);
+    if(pp && pp.short && it.porc.size) bits.push(`<span>total ${esc(rindeTxt(it))}</span>`);
+  }
+  const nc = (it.comp||[]).length;
+  bits.push(`<span>${nc} ${nc===1?"componente":"componentes"}</span>`);
+  if((it.pend||"").trim()) bits.push(`<span class="tag warn">⚠ Pendiente</span>`);
+  const nn = (notesByItem[it.id]||[]).length;
+  if(nn) bits.push(`<span class="tag note">💬 ${nn}</span>`);
+  const aliasHit = it.alias && st.q && norm(it.alias).includes(norm(st.q).split(/\s+/)[0]);
+  return `<button class="card" data-id="${esc(it.id)}">
+    <span class="t">${hl(it.name)}</span>
+    ${ingTxt ? `<span class="ing">${hl(ingTxt)}</span>`:""}
+    ${aliasHit ? `<span class="ing">También: ${hl(it.alias)}</span>` : ""}
+    <span class="meta">${bits.join("")}</span></button>`;
+}
+function renderList(){
+  if(!loaded) return;
+  const items = ITEMS.filter(matches);
+  $("count").textContent = items.length===1 ? "1 resultado" : `${items.length} resultados`;
+  if(!ITEMS.length && me.canEdit && typeof showImport==="function"){ showImport(); return; }
+  if(!ITEMS.length){
+    $("list").innerHTML = `<div class="empty"><b>Todavía no hay recetas cargadas</b>${me.canEdit?"Tocá “+ Nueva” para cargar la primera.":"Cuando se carguen, van a aparecer acá."}</div>`; return;
+  }
+  if(!items.length){ $("list").innerHTML = `<div class="empty"><b>No encontramos nada</b>Probá con otra palabra, o buscá un ingrediente (ej. “frambuesa”).</div>`; return; }
+  const groups = [];
+  const keyOf = it => st.s==="todo" ? (it.s==="recetas"?"Recetas · ":"Menú · ")+it.c : it.c;
+  items.forEach(it=>{ const k=keyOf(it); let g=groups.find(g=>g.k===k); if(!g){g={k,items:[]};groups.push(g)} g.items.push(it); });
+  $("list").innerHTML = groups.map(g=>`<section class="group"><h2>${esc(g.k)} <small>${g.items.length}</small></h2><div class="grid">${g.items.map(cardHTML).join("")}</div></section>`).join("");
+}
+function render(){ renderTabs(); renderChips(); renderList(); $("clr").classList.toggle("on", !!st.q); }
+
+/* ---------- detalle ---------- */
+let stack = [], pushedDepth = 0, ignoreHash = false, closing = false, scale = 1, mode = "view", editing = null;
+function currentId(){ return stack[stack.length-1]; }
+function showPanel(){ $("panel").classList.add("on"); $("scrim").classList.add("on"); $("panel").setAttribute("aria-hidden","false"); }
+function openItem(id, push=true){
+  const it = byId[id]; if(!it) return;
+  if(push && currentId()!==id) stack.push(id);
+  scale = 1; mode = "view";
+  drawDetail(it); showPanel();
+  $("back").style.display = stack.length>1 ? "" : "none";
+  if(location.hash!=="#"+id){ if(push){ ignoreHash=true; location.hash=id; pushedDepth++; } else history.replaceState(null,"","#"+id); }
+  $("dBody").scrollTop = 0;
+}
+function closeDetail(fromHistory){
+  if(!fromHistory && pushedDepth>0){ const n=pushedDepth; pushedDepth=0; closing=true; history.go(-n); }
+  else if(location.hash) history.replaceState(null,"",location.pathname+location.search);
+  pushedDepth=0; stack=[]; mode="view"; editing=null;
+  $("panel").classList.remove("on"); $("scrim").classList.remove("on"); $("panel").setAttribute("aria-hidden","true");
+}
+function drawDetail(it){
+  const isR = it.s==="recetas";
+  $("editBtn").hidden = !me.canEdit;
+  $("dCrumbs").textContent = (isR?"Receta":"Menú")+" · "+it.c;
+  $("dTitle").textContent = it.name;
+  $("dAlias").textContent = it.alias ? "También aparece como: "+it.alias : "";
+  let facts = "";
+  if(isR && it.rindeQ){
+    const base = it.rindeQ, unit = it.rindeU;
+    const pp = porc(it, scale);
+    if(pp && it.porc.src!=="receta") facts += `<div class="fact porc"><div class="k">Porciones</div><div class="v">${esc(pp.main)}</div>${pp.sub?`<div class="s">${esc(pp.sub)}</div>`:""}</div>`;
+    facts += `<div class="fact porc"><div class="k">Peso por porción</div><div class="v">${pp&&pp.w?esc(pp.w):"Sin definir"}</div><div class="s">${pp&&pp.w?esc(pp.wsub):"Falta el dato en la receta"}</div></div>`;
+    const v = base*scale;
+    const uTxt = unit==="porciones"?(v===1?"porción":"porciones"):unit==="u"?(v===1?"unidad":"unidades"):unit;
+    facts += `<div class="fact"><div class="k">${it.porc&&it.porc.src==="receta"?"Rinde (porciones)":"Rinde total"}</div>
+      <div class="scale"><button data-act="minus" aria-label="Menos">−</button>
+      <input id="yield" inputmode="decimal" value="${fmt(v)}" aria-label="Cantidad a preparar">
+      <button data-act="plus" aria-label="Más">+</button><span class="u">${esc(uTxt)}</span>
+      ${scale!==1?`<button class="reset" data-act="reset">volver a ${fmt(base)}</button>`:""}</div></div>`;
+  }
+  facts += `<div class="fact"><div class="k">Componentes</div><div class="v">${(it.comp||[]).length}</div></div>`;
+  const rows = (it.comp||[]).map(c=>{
+    const t = target(c);
+    const name = t ? `<button class="lnk" data-go="${esc(t.id)}">${esc(c.n)}</button>` : esc(c.n);
+    const typ = c.t!=="Ingrediente" ? `<span class="type ${esc(c.t)}">${c.t==="Receta"?"receta":"producto"}</span>` : "";
+    const qn = c.q;
+    let hint = "";
+    if(t && t.porc && t.porc.w && (c.u==="porciones"||c.u==="u") && qn!=null) hint = `<span class="note">${t.porc.wsrc==="estimado"?"≈ ":""}${fmt(t.porc.w*qn*scale)} g</span>`;
+    const q = qn==null ? "" : fmt(qn*scale);
+    const u = c.u==="porciones" && qn*scale===1 ? "porción" : c.u;
+    return `<tr><td>${name}${typ}${c.nota?`<span class="note">${esc(c.nota)}</span>`:""}${hint}</td><td class="q">${q}</td><td class="u">${esc(u)}</td></tr>`;
+  }).join("");
+  const uses = usedIn[it.id]||[];
+  const notesTxt = (it.notes||"").split("\n").map(s=>s.trim()).filter(Boolean);
+  const pend = (it.pend||"").split("\n").map(s=>s.trim()).filter(Boolean);
+  $("dBody").innerHTML = `
+    <div class="facts">${facts}</div>
+    ${pend.length?`<div class="sec">${pend.map(p=>`<div class="pend"><b>Pendiente:</b> ${esc(p)}</div>`).join("")}</div>`:""}
+    <div class="sec"><h3>${isR?"Ingredientes":"Composición"}</h3>
+      ${rows?`<table><tbody>${rows}</tbody></table>`:`<p class="muted">Sin componentes cargados.</p>`}</div>
+    ${notesTxt.length?`<div class="sec notes"><h3>${isR?"Preparación y notas":"Notas"}</h3>${notesTxt.map(n=>`<p>${esc(n)}</p>`).join("")}</div>`:""}
+    ${uses.length?`<div class="sec"><h3>Se usa en</h3><div class="uses">${uses.map(x=>`<button class="lnk" data-go="${esc(x.id)}">${esc(x.name)}</button>`).join("")}</div></div>`:""}
+    <div class="sec" id="notesSec">${notesHTML(it)}</div>
+  `;
+  resolveNames();
+}
+
+/* ---------- aclaraciones ---------- */
+let noteDraft = "", noteBusy = false, noteErr = "";
+function notesHTML(it){
+  const list = notesByItem[it.id]||[];
+  const items = list.map(n=>{
+    const mine = n.uid===me.uid, canDel = mine || me.canEdit;
+    const d = new Date(n.at); const when = isNaN(d) ? "" : d.toLocaleDateString("es-AR",{day:"numeric",month:"short"})+" "+d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
+    return `<div class="nt"><div class="h"><b>${esc(mine?"Vos":(n.nombre||"Alguien"))}</b><span>${esc(when)}</span>
+      ${canDel?`<button class="x" data-delnote="${esc(n.id)}">borrar</button>`:""}</div><p>${esc(n.text)}</p></div>`;
+  }).join("");
+  const canCompose = !!(db && me.uid && me.canWrite!==false);
+  return `<h3>Aclaraciones${list.length?` <span class="muted">(${list.length})</span>`:""}</h3>
+    ${items?`<div class="notes-list">${items}</div>`:`<p class="muted" style="margin:0 0 10px">Todavía no hay aclaraciones en esta ${it.s==="recetas"?"receta":"ficha"}.</p>`}
+    ${canCompose?`<div class="compose"><textarea id="noteTxt" maxlength="2000" placeholder="Escribí una duda, un comentario o una aclaración…">${esc(noteDraft)}</textarea>
+      <div class="row"><span class="${noteErr?"err":"muted"}" id="noteMsg">${esc(noteErr||"Lo ve todo el equipo.")}</span><button class="btn primary" id="noteSend" ${noteBusy?"disabled":""}>${noteBusy?"Publicando…":"Publicar"}</button></div></div>`
+      : `<p class="muted">No podés dejar aclaraciones con esta cuenta.</p>`}`;
+}
+async function sendNote(){
+  const it = byId[currentId()]; const text = ($("noteTxt").value||"").trim();
+  if(!it || !text || noteBusy) return;
+  noteBusy = true; noteErr=""; noteDraft = text; refreshNotes();
+  try{
+    await addDoc(collection(fs,"notas"), {item: it.id, text: text.slice(0,2000), at: new Date().toISOString(), ts: serverTimestamp(), uid: me.uid, nombre: me.name||me.email});
+    noteDraft = "";
+  }catch(e){ noteErr = e && e.code==="permission-denied" ? "Tu cuenta no tiene permiso para dejar aclaraciones." : "No se pudo publicar. Probá de nuevo."; }
+  noteBusy = false; refreshNotes();
+}
+async function delNote(nid){
+  try{ await deleteDoc(doc(fs,"notas",nid)); }
+  catch(e){ noteErr = "No se pudo borrar."; refreshNotes(); }
+}
+function refreshNotes(){ const it = byId[currentId()]; if(it && mode==="view" && $("notesSec")){ $("notesSec").innerHTML = notesHTML(it); resolveNames(); } }
+function resolveNames(){}
+
+/* ---------- edición (solo dueño) ---------- */
+const UNITS = ["g","ml","u","porciones"];
+function blankItem(){ return {id:null, s: st.s==="menu"?"menu":"recetas", c: st.c||"", name:"", alias:"", rindeQ:null, rindeU:"porciones", porcionG:null, comp:[{n:"",t:"Ingrediente",q:null,u:"g",nota:""}], notes:"", pend:""}; }
+function openEditor(it){
+  editing = JSON.parse(JSON.stringify(it ? {...it, porc:undefined, hay:undefined} : blankItem()));
+  editing._orig = it ? it.name : null;
+  mode = "edit";
+  $("editBtn").hidden = true; $("back").style.display="none";
+  $("dCrumbs").textContent = it ? "Editando" : "Nueva ficha";
+  $("dTitle").textContent = it ? it.name : (editing.s==="menu"?"Nuevo producto del menú":"Nueva receta");
+  $("dAlias").textContent = "";
+  drawEditor(); showPanel(); $("dBody").scrollTop=0;
+}
+function catList(s){ return catOrder[s]||[]; }
+function drawEditor(msg){
+  const e = editing, isR = e.s==="recetas";
+  $("dlCat").innerHTML = catList(e.s).map(c=>`<option value="${esc(c)}">`).join("");
+  const rows = e.comp.map((c,i)=>`<div class="crow" data-i="${i}">
+      <input class="n" list="dlComp" data-f="n" value="${esc(c.n)}" placeholder="Componente" aria-label="Componente">
+      <select data-f="t" aria-label="Tipo">${["Ingrediente","Receta","Producto"].map(t=>`<option ${c.t===t?"selected":""}>${t}</option>`).join("")}</select>
+      <input data-f="q" inputmode="decimal" value="${c.q==null?"":esc(String(c.q).replace(".",","))}" placeholder="Cant." aria-label="Cantidad">
+      <select data-f="u" aria-label="Unidad">${UNITS.map(u=>`<option ${c.u===u?"selected":""}>${u}</option>`).join("")}</select>
+      <button class="rm" data-rm="${i}" aria-label="Quitar componente" title="Quitar">×</button>
+      <input class="nota" data-f="nota" value="${esc(c.nota||"")}" placeholder="Nota (opcional)" aria-label="Nota">
+    </div>`).join("");
+  $("dBody").innerHTML = `<form class="form" id="edForm" autocomplete="off">
+    <div class="two">
+      <label class="f">Sección<select id="fS"><option value="recetas" ${isR?"selected":""}>Receta</option><option value="menu" ${!isR?"selected":""}>Producto del menú</option></select></label>
+      <label class="f">Categoría<input id="fC" list="dlCat" value="${esc(e.c)}" placeholder="Ej. Tortas" required></label>
+    </div>
+    <label class="f">Nombre<input id="fName" value="${esc(e.name)}" required placeholder="Ej. Budín de Limón"></label>
+    ${isR?`<div class="three">
+      <label class="f">Rinde<input id="fRQ" inputmode="decimal" value="${e.rindeQ==null?"":esc(String(e.rindeQ).replace(".",","))}" placeholder="Ej. 8"></label>
+      <label class="f">Unidad<select id="fRU">${["porciones","u","g"].map(u=>`<option value="${u}" ${e.rindeU===u?"selected":""}>${u==="u"?"unidades":u}</option>`).join("")}</select></label>
+      <label class="f">Peso por porción (g)<input id="fPG" inputmode="decimal" value="${e.porcionG==null?"":esc(String(e.porcionG))}" placeholder="opcional"></label>
+    </div>`:`<label class="f">También se llama (alias)<input id="fAlias" value="${esc(e.alias||"")}" placeholder="opcional"></label>`}
+    <div><div class="f" style="font-size:12.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${isR?"Ingredientes":"Composición"}</div>
+      <div class="comps" id="comps">${rows}</div>
+      <button type="button" class="btn" id="addComp" style="margin-top:8px">+ Agregar componente</button>
+      <div class="hint muted" style="margin-top:6px">Tipo “Receta” o “Producto” enlaza con la ficha que tenga ese mismo nombre.</div></div>
+    <label class="f">${isR?"Preparación y notas":"Notas"}<textarea id="fNotes" placeholder="Un párrafo por línea">${esc(e.notes||"")}</textarea></label>
+    <label class="f">Pendientes<textarea id="fPend" style="min-height:56px" placeholder="Datos a verificar (opcional)">${esc(e.pend||"")}</textarea></label>
+    ${msg?`<div class="${msg.err?"err":"muted"}">${esc(msg.text)}</div>`:""}
+    <div id="delBox"></div>
+    <div class="bar">
+      <div>${e.id?`<button type="button" class="btn danger" id="delBtn">Eliminar</button>`:""}</div>
+      <div style="display:flex;gap:8px"><button type="button" class="btn" id="cancelEd">Cancelar</button><button type="submit" class="btn primary" id="saveBtn">Guardar</button></div>
+    </div>
+  </form>`;
+}
+function readForm(){
+  const e = editing;
+  e.s = $("fS").value; e.c = $("fC").value.trim(); e.name = $("fName").value.trim();
+  if($("fRQ")){ e.rindeQ = parseNum($("fRQ").value); e.rindeU = $("fRU").value; e.porcionG = parseNum($("fPG").value); }
+  if($("fAlias")) e.alias = $("fAlias").value.trim();
+  e.notes = $("fNotes").value; e.pend = $("fPend").value;
+  document.querySelectorAll("#comps .crow").forEach(r=>{
+    const c = e.comp[+r.dataset.i]; if(!c) return;
+    r.querySelectorAll("[data-f]").forEach(f=>{ const k=f.dataset.f; c[k] = k==="q" ? parseNum(f.value) : f.value.trim(); });
+  });
+}
+function cleanDoc(e, orden){
+  const isR = e.s==="recetas";
+  const d = {s:e.s, c:e.c, name:e.name, orden, notes:(e.notes||"").trim(), pend:(e.pend||"").trim(),
+    comp: e.comp.filter(c=>c.n).map(c=>({n:c.n, t:c.t, q:c.q, u:c.u, nota:c.nota||""}))};
+  if(isR){ if(e.rindeQ!=null){ d.rindeQ=e.rindeQ; d.rindeU=e.rindeU; } if(e.porcionG!=null) d.porcionG=e.porcionG; }
+  else if(e.alias) d.alias = e.alias;
+  return d;
+}
+let saving = false;
+async function saveItem(){
+  if(saving) return; readForm();
+  const e = editing;
+  if(!e.name) return drawEditor({err:true,text:"Falta el nombre."});
+  if(!e.c) return drawEditor({err:true,text:"Falta la categoría."});
+  const dup = ITEMS.find(x=>x.s===e.s && norm(x.name)===norm(e.name) && x.id!==e.id);
+  if(dup) return drawEditor({err:true,text:`Ya existe “${dup.name}” en ${e.s==="recetas"?"Recetas":"el Menú"}.`});
+  if(e.comp.some(c=>c.n && c.q==null)) return drawEditor({err:true,text:"Hay un componente sin cantidad."});
+  saving = true; $("saveBtn").disabled = true; $("saveBtn").textContent = "Guardando…";
+  try{
+    const old = e.id ? byId[e.id] : null;
+    let id = e.id;
+    let orden;
+    if(old && old.s===e.s && old.c===e.c) orden = old.orden;
+    else { const same = ITEMS.filter(x=>x.s===e.s && x.c===e.c && x.id!==e.id); orden = same.length ? Math.max(...same.map(x=>x.orden||0))+1 : Math.max(0,...ITEMS.map(x=>x.orden||0))+10; }
+    if(!id){ id = (e.s==="recetas"?"r-":"m-")+slug(e.name); while(byId[id]) id += "-"+Math.random().toString(36).slice(2,5); }
+    await setDoc(doc(fs,"items",id), cleanDoc(e, orden));
+    // si cambió el nombre, actualizar las fichas que lo usan
+    if(old && norm(old.name)!==norm(e.name)){
+      const tt = old.s==="recetas" ? "Receta" : "Producto";
+      for(const x of ITEMS){
+        if(x.id===id || !(x.comp||[]).some(c=>c.t===tt && norm(c.n)===norm(old.name))) continue;
+        const nx = {...x, comp:x.comp.map(c=>c.t===tt && norm(c.n)===norm(old.name) ? {...c, n:e.name} : c)};
+        await setDoc(doc(fs,"items",x.id), cleanDoc(nx, x.orden));
+      }
+    }
+    saving = false; mode="view"; editing=null;
+    if(byId[id]) { pendingOpen=null; stack=[id]; openItem(id,false); } else pendingOpen = id;
+  }catch(err){
+    saving = false;
+    drawEditor({err:true, text: err && err.code==="permission-denied" ? "No tenés permiso para editar." : "No se pudo guardar. Probá de nuevo."});
+  }
+}
+let pendingOpen = null;
+function askDelete(){
+  const it = byId[editing.id]; const uses = usedIn[it.id]||[];
+  $("delBox").innerHTML = `<div class="confirm"><b>¿Eliminar “${esc(it.name)}”?</b> No se puede deshacer.
+    ${uses.length?`<div style="margin-top:6px">Ojo: se usa en ${uses.map(x=>esc(x.name)).join(", ")}. Esas fichas van a quedar con el nombre sin enlace.</div>`:""}
+    <div class="row"><button type="button" class="btn danger" id="delYes">Sí, eliminar</button><button type="button" class="btn" id="delNo">No</button></div></div>`;
+  $("delBox").scrollIntoView({block:"nearest"});
+}
+async function doDelete(){
+  const id = editing.id;
+  try{ await deleteDoc(doc(fs,"items",id)); closeDetail(); }
+  catch(e){ drawEditor({err:true,text:"No se pudo eliminar."}); }
+}
+
+/* ---------- eventos ---------- */
+document.querySelector(".seg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; st.s=b.dataset.s; st.c=null; render(); });
+$("chips").addEventListener("click",e=>{ const b=e.target.closest(".chip"); if(!b) return; st.c=b.dataset.c||null; render(); });
+let qt; $("q").addEventListener("input",e=>{ clearTimeout(qt); qt=setTimeout(()=>{ st.q=e.target.value.trim(); renderList(); $("clr").classList.toggle("on",!!st.q); },80); });
+let qJust=false;
+$("q").addEventListener("focus",e=>{ qJust=true; setTimeout(()=>e.target.select(),0); });
+$("q").addEventListener("mouseup",e=>{ if(qJust){ e.preventDefault(); qJust=false; } });
+$("q").addEventListener("blur",()=>{ qJust=false; });
+$("clr").addEventListener("click",e=>{ e.preventDefault(); $("q").value=""; st.q=""; renderList(); $("clr").classList.remove("on"); $("q").focus(); });
+$("onlyPend").addEventListener("change",e=>{ st.pend=e.target.checked; renderList(); });
+$("onlyNotes").addEventListener("change",e=>{ st.notes=e.target.checked; renderList(); });
+$("list").addEventListener("click",e=>{ const c=e.target.closest(".card"); if(c){ stack=[]; openItem(c.dataset.id); } });
+$("newBtn").addEventListener("click",()=>{ stack=[]; openEditor(null); });
+$("editBtn").addEventListener("click",()=>{ const it=byId[currentId()]; if(it) openEditor(it); });
+$("dBody").addEventListener("click",e=>{
+  if(mode==="team") return;
+  if(mode==="edit"){
+    const rm=e.target.closest("[data-rm]"); if(rm){ readForm(); editing.comp.splice(+rm.dataset.rm,1); drawEditor(); return; }
+    if(e.target.id==="addComp"){ readForm(); editing.comp.push({n:"",t:"Ingrediente",q:null,u:"g",nota:""}); drawEditor(); const r=document.querySelectorAll("#comps .crow .n"); r[r.length-1]?.focus(); return; }
+    if(e.target.id==="cancelEd"){ const id=editing.id; mode="view"; editing=null; if(id&&byId[id]){ stack=[id]; openItem(id,false);} else closeDetail(); return; }
+    if(e.target.id==="delBtn"){ askDelete(); return; }
+    if(e.target.id==="delNo"){ $("delBox").innerHTML=""; return; }
+    if(e.target.id==="delYes"){ doDelete(); return; }
+    return;
+  }
+  const g=e.target.closest("[data-go]"); if(g){ openItem(g.dataset.go); return; }
+  if(e.target.id==="noteSend"){ sendNote(); return; }
+  const dn=e.target.closest("[data-delnote]"); if(dn){ delNote(dn.dataset.delnote); return; }
+  const a=e.target.closest("[data-act]"); if(!a) return;
+  const it = byId[currentId()]; const base = it.rindeQ;
+  const cur = Math.round(base*scale*100)/100;
+  const step = (it.porc && it.porc.size && it.rindeU==="g") ? it.porc.size : 1;
+  if(a.dataset.act==="plus") setYield(Math.floor(cur/step+1e-6)*step+step, it);
+  if(a.dataset.act==="minus" && cur>step) setYield(Math.ceil(cur/step-1e-6)*step-step, it);
+  if(a.dataset.act==="reset"){ scale=1; drawDetail(it); }
+});
+$("dBody").addEventListener("submit",e=>{ e.preventDefault(); if(mode==="edit") saveItem(); });
+$("dBody").addEventListener("change",e=>{
+  if(mode==="edit" && e.target.id==="fS"){ readForm(); drawEditor(); return; }
+  if(e.target.id==="yield") setYield(parseNum(e.target.value), byId[currentId()]);
+});
+$("dBody").addEventListener("keydown",e=>{ if(e.target.id==="yield" && e.key==="Enter") setYield(parseNum(e.target.value), byId[currentId()]); });
+$("dBody").addEventListener("input",e=>{ if(e.target.id==="noteTxt") noteDraft=e.target.value; });
+function setYield(v, it){ if(it.rindeQ && v && v>0) scale = v/it.rindeQ; drawDetail(it); }
+$("close").addEventListener("click",()=>closeDetail());
+$("scrim").addEventListener("click",()=>{ if(mode!=="edit") closeDetail(); });
+$("back").addEventListener("click",()=>{ if(pushedDepth>0) history.back(); else { stack.pop(); const id=currentId(); if(id) openItem(id,false); else closeDetail(); } });
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape" && $("panel").classList.contains("on") && mode!=="edit") closeDetail();
+  if(e.key==="/" && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){ e.preventDefault(); $("q").focus(); }
+});
+function fromHash(){ const id=location.hash.slice(1); if(byId[id]){ stack=[]; openItem(id,false); stack=[id]; } }
+window.addEventListener("hashchange",()=>{
+  if(ignoreHash){ ignoreHash=false; return; }
+  if(closing){ closing=false; if(location.hash) history.replaceState(null,"",location.pathname+location.search); return; }
+  if(mode==="edit") return;
+  const id=location.hash.slice(1);
+  if(!byId[id]){ if($("panel").classList.contains("on")) closeDetail(true); return; }
+  if(stack[stack.length-2]===id){ stack.pop(); pushedDepth=Math.max(0,pushedDepth-1); }
+  else if(currentId()!==id){ stack.push(id); }
+  openItem(id,false);
+});
+
+/* ---------- conexión: login, permisos y datos ---------- */
+function onData(){
+  derive(); render();
+  if(!$("panel").classList.contains("on")){ if(!loaded2){ loaded2=true; fromHash(); } return; }
+  if(mode==="view"){ const it=byId[currentId()]; if(it) drawDetail(it); else closeDetail(); }
+  if(pendingOpen && byId[pendingOpen] && mode==="view"){ const id=pendingOpen; pendingOpen=null; stack=[id]; openItem(id,false); }
+}
+let loaded2 = false;
+function banner(html){ $("banner").innerHTML = html ? `<div class="banner">${html}</div>` : ""; }
+function gate(html){
+  $("gate").innerHTML = html ? `<div class="gate-card">${html}</div>` : "";
+  $("gate").hidden = !html; $("mainArea").hidden = !!html;
+  [$("chips"), document.querySelector(".seg"), document.querySelector(".search")].forEach(el=>{ el.style.display = html ? "none" : ""; });
+}
+const LOGO = `<div class="gate-logo">Recetario Nohel</div><div class="muted" style="margin-bottom:18px">Coffee House</div>`;
+async function login(){
+  const p = new GoogleAuthProvider(); p.setCustomParameters({prompt:"select_account"});
+  try{ await signInWithPopup(auth, p); }
+  catch(e){
+    if(e && (e.code==="auth/popup-blocked" || e.code==="auth/operation-not-supported-in-this-environment")) await signInWithRedirect(auth, p);
+    else if(e && e.code!=="auth/popup-closed-by-user" && e.code!=="auth/cancelled-popup-request") gate(LOGO+`<p class="err">No se pudo ingresar (${esc(e.code||"error")}).</p><button class="btn primary" id="loginBtn">Probar de nuevo</button>`);
+  }
+}
+let unsubs = [];
+function stopListeners(){ unsubs.forEach(u=>{ try{u()}catch(e){} }); unsubs=[]; }
+
+onAuthStateChanged(auth, async (u)=>{
+  stopListeners(); ITEMS=[]; NOTES=[]; loaded=false; closeDetail();
+  $("newBtn").hidden = $("teamBtn").hidden = $("outBtn").hidden = true; $("role").hidden = true;
+  if(!u){ gate(LOGO+`<p>Ingresá con tu cuenta de Google para ver las recetas.</p><button class="btn primary" id="loginBtn">Ingresar con Google</button>`); return; }
+  const email = (u.email||"").toLowerCase();
+  me = {uid:u.uid, email, name:u.displayName||email, isOwner: email===OWNER, canEdit: email===OWNER, canWrite:true};
+  if(!me.isOwner){
+    let ok = false;
+    try{ ok = (await getDoc(doc(fs,"permisos",email))).exists(); }catch(e){ ok = false; }
+    if(!ok){ gate(LOGO+`<p>La cuenta <b>${esc(email)}</b> todavía no tiene acceso.</p><p class="muted">Pedile a la dueña de Nohel que agregue tu mail en “Equipo”.</p><button class="btn" id="outBtn2">Usar otra cuenta</button>`); return; }
+  }
+  gate("");
+  $("outBtn").hidden = false;
+  $("newBtn").hidden = $("teamBtn").hidden = !me.isOwner;
+  $("role").hidden = false; $("role").textContent = me.isOwner ? "Podés editar" : "Lectura y aclaraciones";
+  $("list").innerHTML = `<div class="empty"><b>Cargando recetas…</b></div>`;
+  const timer = setTimeout(()=>{ if(!loaded) banner("No se pudo conectar con la base de datos todavía. Revisá tu conexión."); }, 10000);
+  unsubs.push(onSnapshot(query(collection(fs,"items"), orderBy("orden")), snap=>{
+    clearTimeout(timer); banner("");
+    ITEMS = snap.docs.map(d=>({id:d.id, ...d.data(), comp:[...((d.data().comp)||[])]}));
+    loaded = true; onData();
+  }, err=>{ clearTimeout(timer); loaded=true; banner(err && err.code==="permission-denied" ? "Tu cuenta no tiene permiso para ver las recetas." : "No se pudieron cargar las recetas."); renderList(); }));
+  unsubs.push(onSnapshot(collection(fs,"notas"), snap=>{
+    NOTES = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    if(loaded){ derive(); renderList(); if(mode==="view") refreshNotes(); }
+  }, ()=>{}));
+});
+document.addEventListener("click", e=>{
+  if(e.target.id==="loginBtn") login();
+  if(e.target.id==="outBtn" || e.target.id==="outBtn2") signOut(auth);
+});
+
+/* ---------- importar / exportar (solo dueña) ---------- */
+let impStatus = "";
+function showImport(){
+  $("list").innerHTML = `<div class="empty"><b>La base está vacía</b>Subí el archivo <code>datos-iniciales.json</code> (o un respaldo exportado) para cargar las recetas.<br><br>
+    <label class="btn primary" style="display:inline-block;cursor:pointer">Elegir archivo…<input type="file" id="impFile" accept=".json,application/json" hidden></label>
+    <div id="impMsg" class="muted" style="margin-top:10px">${esc(impStatus)}</div></div>`;
+}
+document.addEventListener("change", async e=>{
+  if(e.target.id!=="impFile" || !e.target.files[0]) return;
+  const msg = t => { impStatus=t; const m=$("impMsg"); if(m) m.textContent=t; };
+  try{
+    const data = JSON.parse(await e.target.files[0].text());
+    const items = Array.isArray(data) ? data : data.items;
+    if(!Array.isArray(items) || !items.length || !items.every(x=>x && x.id && x.name && x.s)) throw new Error("formato");
+    msg(`Cargando ${items.length} fichas…`);
+    for(let i=0;i<items.length;i+=400){
+      const b = writeBatch(fs);
+      items.slice(i,i+400).forEach(({id,...rest})=>b.set(doc(fs,"items",String(id)), rest));
+      await b.commit();
+    }
+    msg("¡Listo!");
+  }catch(err){ msg(err && err.message==="formato" ? "Ese archivo no tiene el formato esperado." : "No se pudo importar. Probá de nuevo."); }
+});
+function exportar(){
+  const data = {exportado: new Date().toISOString(), items: ITEMS.map(({porc,hay,...x})=>x)};
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:"application/json"}));
+  a.download = "recetario-nohel-respaldo-"+new Date().toISOString().slice(0,10)+".json";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ---------- equipo: mails con acceso ---------- */
+let teamUnsub = null, TEAM = [];
+function openTeam(){
+  mode = "team"; stack = [];
+  $("editBtn").hidden = true; $("back").style.display="none";
+  $("dCrumbs").textContent = "Solo la dueña ve esto"; $("dTitle").textContent = "Equipo"; $("dAlias").textContent = "";
+  drawTeam(); showPanel();
+  if(!teamUnsub) teamUnsub = onSnapshot(collection(fs,"permisos"), snap=>{ TEAM = snap.docs.map(d=>({email:d.id, ...d.data()})).sort((a,b)=>a.email.localeCompare(b.email)); if(mode==="team") drawTeam(); }, ()=>{});
+}
+function drawTeam(msg){
+  $("dBody").innerHTML = `<div class="form">
+    <p class="muted" style="margin:0">Las personas de esta lista pueden entrar con su cuenta de Google, ver todas las recetas y dejar aclaraciones. No pueden editar ni borrar recetas.</p>
+    <form id="teamForm" style="display:flex;gap:8px"><input id="teamMail" type="email" required placeholder="mail@gmail.com" autocomplete="off"><button class="btn primary">Agregar</button></form>
+    ${msg?`<div class="${msg.err?"err":"muted"}">${esc(msg.text)}</div>`:""}
+    <div class="notes-list">${TEAM.length ? TEAM.map(t=>`<div class="nt" style="display:flex;align-items:center;gap:10px"><span style="flex:1">${esc(t.email)}</span><button class="btn danger" data-rmmail="${esc(t.email)}">Quitar</button></div>`).join("") : `<p class="muted">Todavía no agregaste a nadie.</p>`}</div>
+    <hr style="border:0;border-top:1px solid var(--line);margin:6px 0">
+    <div><b>Respaldo</b><p class="muted" style="margin:4px 0 8px">Descargá una copia de todas las recetas por las dudas.</p><button class="btn" id="expBtn">Descargar respaldo</button></div>
+  </div>`;
+}
+$("teamBtn").addEventListener("click", openTeam);
+$("dBody").addEventListener("submit", async e=>{
+  if(e.target.id!=="teamForm") return; e.preventDefault(); e.stopImmediatePropagation();
+  const m = $("teamMail").value.trim().toLowerCase();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)) return drawTeam({err:true,text:"Ese mail no parece válido."});
+  if(m===OWNER) return drawTeam({err:true,text:"Ese es tu propio mail: ya tenés acceso total."});
+  try{ await setDoc(doc(fs,"permisos",m), {agregado: new Date().toISOString(), rol:"lector"}); drawTeam({text:`Listo: ${m} ya puede entrar.`}); }
+  catch(err){ drawTeam({err:true,text:"No se pudo agregar."}); }
+}, true);
+$("dBody").addEventListener("click", async e=>{
+  if(mode!=="team") return;
+  const r = e.target.closest("[data-rmmail]");
+  if(r){ try{ await deleteDoc(doc(fs,"permisos",r.dataset.rmmail)); }catch(err){ drawTeam({err:true,text:"No se pudo quitar."}); } }
+  if(e.target.id==="expBtn") exportar();
+}, true);
+</script>
+</body>
+</html>

@@ -172,6 +172,15 @@ td .note{display:block;font-size:12.5px;color:var(--muted)}
 .gate-card{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:32px 28px;max-width:420px;width:100%;text-align:center;box-shadow:var(--shadow)}
 .gate-card p{margin:0 0 14px}
 .gate-logo{font-family:Fraunces,Georgia,serif;font-size:30px;font-weight:650;color:var(--brand)}
+.ph-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:12px}
+.ph-item{margin:0}
+.ph-thumb{display:block;width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:10px;overflow:hidden;padding:0;background:var(--soft)}
+.ph-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.ph-item figcaption{font-size:12px;color:var(--muted);margin-top:4px}
+.ph-item .x,.ph-confirm .x{border:0;background:none;color:var(--link);text-decoration:underline;padding:0;font-size:12px}
+.lightbox{position:fixed;inset:0;background:rgba(20,12,6,.88);z-index:50;display:grid;place-items:center;padding:20px;cursor:zoom-out}
+.lightbox img{max-width:100%;max-height:100%;border-radius:8px}
+.lightbox .lb-close{position:absolute;top:16px;right:16px}
 </style>
 </head>
 <body>
@@ -238,7 +247,7 @@ td .note{display:block;font-size:12.5px;color:var(--muted)}
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, query, orderBy, setDoc, deleteDoc, addDoc, getDoc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, doc, onSnapshot, query, orderBy, where, setDoc, deleteDoc, addDoc, getDoc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 // ============================================================
 //  CONFIGURACIÓN — Recetario Nohel
 //  1) Pegá abajo los datos de tu proyecto de Firebase
@@ -496,6 +505,7 @@ function drawDetail(it){
     <div class="sec" id="notesSec">${notesHTML(it)}</div>
   `;
   resolveNames();
+  if(typeof afterDetail==="function") afterDetail(it);
 }
 
 /* ---------- aclaraciones ---------- */
@@ -835,6 +845,77 @@ $("dBody").addEventListener("click", async e=>{
   if(r){ try{ await deleteDoc(doc(fs,"permisos",r.dataset.rmmail)); }catch(err){ drawTeam({err:true,text:"No se pudo quitar."}); } }
   if(e.target.id==="expBtn") exportar();
 }, true);
+
+/* ---------- fotos: todos suben y ven; solo la dueña borra ---------- */
+let photoItem = null, photoUnsub = null, PHOTOS = [], photoBusy = false, photoMsg = "", photoConfirm = null;
+function afterDetail(it){
+  if(!it || mode!=="view") return;
+  let box = $("photosSec");
+  if(!box){ box = document.createElement("div"); box.className="sec"; box.id="photosSec"; const n=$("notesSec"); n ? n.parentNode.insertBefore(box,n) : $("dBody").appendChild(box); }
+  if(photoItem !== it.id){
+    if(photoUnsub){ try{photoUnsub()}catch(e){} }
+    photoItem = it.id; PHOTOS = []; photoMsg=""; photoConfirm=null;
+    photoUnsub = onSnapshot(query(collection(fs,"fotos"), where("item","==",it.id)), snap=>{
+      PHOTOS = snap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>a.at<b.at?-1:1);
+      drawPhotos();
+    }, ()=>{ photoMsg="No se pudieron cargar las fotos."; drawPhotos(); });
+  }
+  drawPhotos();
+}
+function drawPhotos(){
+  const box = $("photosSec"); if(!box) return;
+  const grid = PHOTOS.map(p=>`<figure class="ph-item">
+      <button class="ph-thumb" data-photo="${esc(p.id)}" aria-label="Ver foto"><img src="${p.data}" alt="Foto de la receta" loading="lazy"></button>
+      <figcaption>${esc(p.uid===me.uid?"Vos":(p.nombre||"Alguien"))} · ${esc(new Date(p.at).toLocaleDateString("es-AR",{day:"numeric",month:"short"}))}
+      ${me.isOwner?(photoConfirm===p.id?` <span class="ph-confirm">¿Borrar? <button class="x" data-delphoto-yes="${esc(p.id)}">sí</button> <button class="x" data-delphoto-no>no</button></span>`:` <button class="x" data-delphoto="${esc(p.id)}">borrar</button>`):""}</figcaption></figure>`).join("");
+  box.innerHTML = `<h3>Fotos${PHOTOS.length?` <span class="muted">(${PHOTOS.length})</span>`:""}</h3>
+    ${PHOTOS.length?`<div class="ph-grid">${grid}</div>`:`<p class="muted" style="margin:0 0 10px">Todavía no hay fotos.</p>`}
+    <div class="row" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <label class="btn" style="cursor:pointer">${photoBusy?"Subiendo…":"📷 Subir foto"}<input type="file" id="photoFile" accept="image/*" hidden ${photoBusy?"disabled":""}></label>
+      <span class="${/No se|demasiado|permiso/.test(photoMsg)?"err":"muted"}">${esc(photoMsg)}</span></div>`;
+}
+async function shrink(file){
+  const url = URL.createObjectURL(file);
+  try{
+    const img = await new Promise((ok,ko)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=ko; i.src=url; });
+    let max = 1280, q = 0.78, out = "";
+    for(let k=0;k<6;k++){
+      const s = Math.min(1, max/Math.max(img.naturalWidth,img.naturalHeight));
+      const c = document.createElement("canvas"); c.width=Math.round(img.naturalWidth*s); c.height=Math.round(img.naturalHeight*s);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      out = c.toDataURL("image/jpeg", q);
+      if(out.length < 700000) return out;
+      max = Math.round(max*0.8); q = Math.max(0.5, q-0.08);
+    }
+    return out.length < 900000 ? out : null;
+  } finally { URL.revokeObjectURL(url); }
+}
+document.addEventListener("change", async e=>{
+  if(e.target.id!=="photoFile" || !e.target.files[0] || !photoItem) return;
+  const file = e.target.files[0], item = photoItem;
+  photoBusy = true; photoMsg = ""; drawPhotos();
+  try{
+    const data = await shrink(file);
+    if(!data){ photoMsg = "La foto es demasiado grande."; }
+    else { await addDoc(collection(fs,"fotos"), {item, data, uid: me.uid, nombre: me.name||me.email, at: new Date().toISOString()}); photoMsg = "Foto subida."; }
+  }catch(err){ photoMsg = err && err.code==="permission-denied" ? "Tu cuenta no tiene permiso para subir fotos." : "No se pudo subir la foto."; }
+  photoBusy = false; drawPhotos();
+});
+$("dBody").addEventListener("click", async e=>{
+  if(mode!=="view") return;
+  const t = e.target.closest("[data-photo]");
+  if(t){ const p = PHOTOS.find(x=>x.id===t.dataset.photo); if(p) openLightbox(p.data); return; }
+  const d = e.target.closest("[data-delphoto]"); if(d){ photoConfirm = d.dataset.delphoto; drawPhotos(); return; }
+  if(e.target.closest("[data-delphoto-no]")){ photoConfirm = null; drawPhotos(); return; }
+  const y = e.target.closest("[data-delphoto-yes]");
+  if(y){ try{ await deleteDoc(doc(fs,"fotos",y.dataset.delphotoYes)); photoMsg="Foto borrada."; }catch(err){ photoMsg="No se pudo borrar."; } photoConfirm=null; drawPhotos(); }
+}, true);
+function openLightbox(src){
+  const lb = document.createElement("div"); lb.className="lightbox";
+  lb.innerHTML = `<img src="${src}" alt="Foto ampliada"><button class="icon-btn lb-close" aria-label="Cerrar">×</button>`;
+  lb.addEventListener("click", ()=>lb.remove());
+  document.body.appendChild(lb);
+}
 </script>
 </body>
 </html>
